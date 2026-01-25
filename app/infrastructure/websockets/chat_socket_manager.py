@@ -20,10 +20,9 @@ class ChatWebSocketManager:
             await websocket.send_json(message)
             
     async def handle_message(self, conversation_id: str, data: dict, db):
-        # TODO: Add Ai agent here
         # Import here to avoid circular imports
-        # from services.ai_service import AIService
+        from agents.proposal_agent import ProposalAgent
         
-        # ai_service = AIService(db)
-        # response = await ai_service.process_message(conversation_id, data)
-        await self.send_message(conversation_id, "cool convo")
+        ai_agent = ProposalAgent("gpt-4o-mini", db)
+        response = await ai_agent.process_message(conversation_id, data)
+        await self.send_message(conversation_id, response["content"])

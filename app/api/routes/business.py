@@ -58,6 +58,6 @@ async def create_business(
 ):
     """Create a new business."""
     service = BusinessService(db)
-    user_id = "1"
+    user_id = "3"
     business = service.create_business(user_id, business_data)
-    return business
+    return BusinessResponse(**business)

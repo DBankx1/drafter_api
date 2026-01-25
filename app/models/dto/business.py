@@ -28,7 +28,6 @@ class BusinessUpdate(BaseModel):
 class BusinessResponse(BusinessBase):
     id: str
     user_id: str
-    is_active: bool
     created_at: datetime
     updated_at: datetime
     
