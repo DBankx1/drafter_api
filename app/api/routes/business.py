@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.infrastructure.database.db import get_db
 from app.models.dto.business import BusinessCreate, BusinessResponse
-from app.services.business.business_service import BusinessService
+from app.services.business_service import BusinessService
 
 
 router = APIRouter(tags=["business"], prefix="/business")
@@ -31,7 +31,7 @@ def get_business(
     #         detail="Not authorized to access this business"
     #     )
     
-    return business
+    return BusinessResponse.model_validate(business)
 
 @router.get("/subdomain/{subdomain}", response_model=BusinessResponse)
 def get_business_by_subdomain(
@@ -48,7 +48,7 @@ def get_business_by_subdomain(
             detail=f"Business with subdomain '{subdomain}' not found"
         )
     
-    return business
+    return BusinessResponse.model_validate(business)
 
 @router.post("/", response_model=BusinessResponse)
 async def create_business(
@@ -60,4 +60,4 @@ async def create_business(
     service = BusinessService(db)
     user_id = "3"
     business = service.create_business(user_id, business_data)
-    return BusinessResponse(**business)
+    return BusinessResponse.model_validate(business)

@@ -71,7 +71,6 @@ class BusinessRepository(BaseRepository[BusinessEntity]):
         try:
             business = self.db.query(BusinessEntity).filter(
                 BusinessEntity.subdomain == subdomain,
-                BusinessEntity.is_active == True
             ).first()
             
             if business:
@@ -187,79 +186,79 @@ class BusinessRepository(BaseRepository[BusinessEntity]):
             logger.error(f"Database error checking email existence {email}: {str(e)}")
             raise
     
-    def get_active_businesses(self, skip: int = 0, limit: int = 100) -> List[BusinessEntity]:
-        """
-        Retrieve all active businesses with pagination.
+    # def get_active_businesses(self, skip: int = 0, limit: int = 100) -> List[BusinessEntity]:
+    #     """
+    #     Retrieve all active businesses with pagination.
         
-        Args:
-            skip: Number of records to skip
-            limit: Maximum number of records to return
+    #     Args:
+    #         skip: Number of records to skip
+    #         limit: Maximum number of records to return
             
-        Returns:
-            List of active businesses
-        """
-        try:
-            businesses = self.db.query(BusinessEntity).filter(
-                BusinessEntity.is_active == True
-            ).offset(skip).limit(limit).all()
+    #     Returns:
+    #         List of active businesses
+    #     """
+    #     try:
+    #         businesses = self.db.query(BusinessEntity).filter(
+    #             BusinessEntity.is_active == True
+    #         ).offset(skip).limit(limit).all()
             
-            logger.debug(f"Retrieved {len(businesses)} active businesses")
-            return businesses
+    #         logger.debug(f"Retrieved {len(businesses)} active businesses")
+    #         return businesses
             
-        except SQLAlchemyError as e:
-            logger.error(f"Database error retrieving active businesses: {str(e)}")
-            raise
+    #     except SQLAlchemyError as e:
+    #         logger.error(f"Database error retrieving active businesses: {str(e)}")
+    #         raise
     
-    def deactivate(self, business_id: str) -> Optional[BusinessEntity]:
-        """
-        Soft delete a business by marking it as inactive.
+    # def deactivate(self, business_id: str) -> Optional[BusinessEntity]:
+    #     """
+    #     Soft delete a business by marking it as inactive.
         
-        Args:
-            business_id: The business UUID
+    #     Args:
+    #         business_id: The business UUID
             
-        Returns:
-            The deactivated business if found, None otherwise
-        """
-        try:
-            business = self.get_by_id(business_id)
-            if business:
-                business.is_active = False
-                self.db.commit()
-                self.db.refresh(business)
-                logger.info(f"Deactivated business: {business_id}")
-            return business
+    #     Returns:
+    #         The deactivated business if found, None otherwise
+    #     """
+    #     try:
+    #         business = self.get_by_id(business_id)
+    #         if business:
+    #             business.is_active = False
+    #             self.db.commit()
+    #             self.db.refresh(business)
+    #             logger.info(f"Deactivated business: {business_id}")
+    #         return business
             
-        except SQLAlchemyError as e:
-            self.db.rollback()
-            logger.error(f"Database error deactivating business {business_id}: {str(e)}")
-            raise
+    #     except SQLAlchemyError as e:
+    #         self.db.rollback()
+    #         logger.error(f"Database error deactivating business {business_id}: {str(e)}")
+    #         raise
     
-    def reactivate(self, business_id: str) -> Optional[BusinessEntity]:
-        """
-        Reactivate a previously deactivated business.
+    # def reactivate(self, business_id: str) -> Optional[BusinessEntity]:
+    #     """
+    #     Reactivate a previously deactivated business.
         
-        Args:
-            business_id: The business UUID
+    #     Args:
+    #         business_id: The business UUID
             
-        Returns:
-            The reactivated business if found, None otherwise
-        """
-        try:
-            business = self.db.query(BusinessEntity).filter(
-                BusinessEntity.id == business_id
-            ).first()
+    #     Returns:
+    #         The reactivated business if found, None otherwise
+    #     """
+    #     try:
+    #         business = self.db.query(BusinessEntity).filter(
+    #             BusinessEntity.id == business_id
+    #         ).first()
             
-            if business:
-                business.is_active = True
-                self.db.commit()
-                self.db.refresh(business)
-                logger.info(f"Reactivated business: {business_id}")
-            return business
+    #         if business:
+    #             business.is_active = True
+    #             self.db.commit()
+    #             self.db.refresh(business)
+    #             logger.info(f"Reactivated business: {business_id}")
+    #         return business
             
-        except SQLAlchemyError as e:
-            self.db.rollback()
-            logger.error(f"Database error reactivating business {business_id}: {str(e)}")
-            raise
+    #     except SQLAlchemyError as e:
+    #         self.db.rollback()
+    #         logger.error(f"Database error reactivating business {business_id}: {str(e)}")
+    #         raise
     
     def update_subdomain(self, business_id: str, new_subdomain: str) -> Optional[BusinessEntity]:
         """

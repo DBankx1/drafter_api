@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, WebSocket
 from sqlalchemy.orm import Session
 from app.infrastructure.database.db import get_db
-from app.services.chat.chat_service import ChatService
+from app.services.chat_service import ChatService
 
 router = APIRouter(tags=["chat"], prefix="/chat")
 
