@@ -8,5 +8,9 @@ class Settings(BaseSettings):
     )
     
     API_V1_STR: str = "/api/v1"
+    
+    DB_URL: str
+    
+    OPENAI_API_KEY: str
         
-settings = Settings()
+settings = Settings() # type: ignore
