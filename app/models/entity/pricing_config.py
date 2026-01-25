@@ -41,6 +41,5 @@ class ServiceConfig(BaseModel):
 class PricingService(BaseModel):
     services: list[ServiceConfig]
     
-    model_config = {
-        "use_enum_values": True
-    }
+    class Config:
+        use_enum_values = True

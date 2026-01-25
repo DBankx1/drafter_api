@@ -11,9 +11,8 @@ class PricingConfigResponse(BaseModel):
     created_at: datetime = Field(..., description="The creation timestamp")
     updated_at: datetime = Field(..., description="The last update timestamp")
     
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        from_attributes = True
     
 class PricingConfigCreate(BaseModel):
     config_json: PricingService = Field(..., description="The pricing configuration")
