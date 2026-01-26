@@ -18,19 +18,6 @@ class BusinessRepository(BaseRepository[BusinessEntity]):
         super().__init__(BusinessEntity, db)
     
     def get_by_id(self, business_id: str, include_relations: bool = False) -> Optional[BusinessEntity]:
-        """
-        Retrieve a business by ID with optional eager loading of relationships.
-        
-        Args:
-            business_id: The business UUID
-            include_relations: Whether to eager load related entities (pricing, widget settings, etc.)
-            
-        Returns:
-            Business entity if found, None otherwise
-            
-        Raises:
-            SQLAlchemyError: If a database error occurs
-        """
         try:
             query = self.db.query(BusinessEntity).filter(BusinessEntity.id == business_id)
             
@@ -85,18 +72,6 @@ class BusinessRepository(BaseRepository[BusinessEntity]):
             raise
     
     def get_by_user_id(self, user_id: str) -> Optional[BusinessEntity]:
-        """
-        Retrieve a business by Supabase user ID.
-        
-        Args:
-            user_id: The Supabase auth user ID
-            
-        Returns:
-            Business entity if found, None otherwise
-            
-        Raises:
-            SQLAlchemyError: If a database error occurs
-        """
         try:
             business = self.db.query(BusinessEntity).filter(
                 BusinessEntity.user_id == user_id

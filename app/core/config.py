@@ -12,5 +12,14 @@ class Settings(BaseSettings):
     DB_URL: str
     
     OPENAI_API_KEY: str
+    
+    SUPABASE_URL: str
+    SUPABASE_JWT_URL: str
+    SUPABASE_PUBLISHABLE_KEY: str 
+    SUPABASE_SECRET_KEY: str
+    SUPABASE_JWT_SECRET: str
+    SUPABASE_AUDIENCE: str = "authenticated"
+    
+    ALGORITHM: str = "ES256"
         
 settings = Settings() # type: ignore
