@@ -36,9 +36,9 @@ class KnowledgeBaseService:
             f"business_id={business_id}"
         )
         
-        kb = await self.kb_repo.create(business_id, source_type=KnowledgeBaseType.PDF, source_reference="", metadata={"original_filename": file.filename})
+        kb = await self.kb_repo.create(business_id=business_id, source_type=KnowledgeBaseType.PDF, source_reference="", meta={"original_filename": file.filename})
         
-        storage_path = self.storage.build_path(business_id, kb.id, file.filename) # type: ignore
+        storage_path = self.storage.build_path(business_id, file.filename) # type: ignore
         
         upload_task = asyncio.to_thread(self.storage.upload_file, storage_path, file_bytes)
         
@@ -71,6 +71,22 @@ class KnowledgeBaseService:
             meta=kb.meta,
             uploaded_at=kb.uploaded_at
         )
+    
+    async def get_knowledge_bases(self, business_id: str) -> list[KnowledgeBaseResponse]:
+        """Retrieves all knowledge bases for a given business."""
+        kbs = await self.kb_repo.get_all_by_business(business_id)
+        return [
+            KnowledgeBaseResponse(
+                id=kb.id,
+                business_id=kb.business_id,
+                source_type=kb.source_type,
+                source_reference=kb.source_reference,
+                status=kb.status,
+                meta=kb.meta,
+                uploaded_at=kb.uploaded_at
+            )
+            for kb in kbs
+        ]
     
     async def _cleanup_storage(self, path: str) -> None:
         """Best-effort storage cleanup on failure — never raises."""

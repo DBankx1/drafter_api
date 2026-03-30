@@ -1,3 +1,4 @@
+from fastapi.concurrency import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from app.core.config import settings
 from app.models.entity.base import Base
@@ -27,5 +28,16 @@ async def get_db():
     async with SessionLocal() as session:
         try:
             yield session
+        finally:
+            await session.close()
+
+@asynccontextmanager
+async def get_db_context():
+    async with SessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()

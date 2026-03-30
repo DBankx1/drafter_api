@@ -17,7 +17,7 @@ class WidgetSettingsEntity(Base):
     position = mapped_column(String, default="bottom-right")  # bottom-right, bottom-left
     logo_url = mapped_column(String)
     welcome_message = mapped_column(Text, default="Hi! How can we help you today?")
-    created_at = mapped_column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = mapped_column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     business = relationship("BusinessEntity", back_populates="widget_settings")

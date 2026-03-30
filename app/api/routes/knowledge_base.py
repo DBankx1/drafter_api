@@ -23,5 +23,14 @@ async def upload_knowledge_base(
     
     service = KnowledgeBaseService(db)
     return await service.upload_pdf_knowledge_base(business.id, file)
+
+
+@router.get("/")
+async def get_knowledge_bases(
+    db: AsyncSession = Depends(get_db),
+    business: BusinessEntity = Depends(get_user_business)
+) -> list[KnowledgeBaseResponse]:
+    """Endpoint to retrieve all knowledge bases for the current business."""
     
-    
+    service = KnowledgeBaseService(db)
+    return await service.get_knowledge_bases(business.id)    

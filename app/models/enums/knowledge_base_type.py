@@ -1,12 +1,12 @@
 from enum import Enum
 
 class KnowledgeBaseType(Enum):
-    URL = "url"
-    PDF = "pdf"
-    TEXT = "text"
-    IMAGE = "image"
-    
+    URL = "URL"
+    PDF = "PDF"
+    TEXT = "TEXT"
+    IMAGE = "IMAGE"
+
 class KnowledgeBaseStatus(Enum):
-    PENDING = "pending"
-    PROCESSED = "processed"
-    ERROR = "error"
+    PENDING = "PENDING"
+    PROCESSED = "PROCESSED"
+    ERROR = "ERROR"

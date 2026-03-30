@@ -1,7 +1,7 @@
 
 import logging
 
-from app.core.supabase_client import get_supabase_publishable_client
+from app.core.supabase_client import get_supabase_client
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class SupabaseStorage:
     
     def __init__(self):
-        self._client = get_supabase_publishable_client()
+        self._client = get_supabase_client()
         self._bucket = settings.SUPABASE_STORAGE_BUCKET
     
     
@@ -23,7 +23,7 @@ class SupabaseStorage:
         """Upload a file to Supabase Storage and return the public URL"""
         try:
             logger.info(f"Uploading file to Supabase at path: {path}")
-            self._client.storage.from_(self._bucket).upload(path, file_content, file_options={"content-type": "application/pdf", "upsert": "false"})
+            self._client.storage.from_(self._bucket).upload(path, file_content, file_options={"content-type": "application/pdf", "upsert": "true"})
             return path
         except Exception as e:
             logger.error(f"Error uploading file to Supabase: {str(e)}")

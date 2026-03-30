@@ -18,8 +18,8 @@ class PricingConfigEntity(Base):
     id = mapped_column(Integer, primary_key=True)
     business_id = mapped_column(String, ForeignKey("businesses.id"))
     config_json = mapped_column(JSONB, nullable=False)
-    created_at = mapped_column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = mapped_column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     business = relationship("BusinessEntity", back_populates="pricing_config")
     

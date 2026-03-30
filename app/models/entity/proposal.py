@@ -19,7 +19,7 @@ class ProposalEntity(Base):
     status: Mapped[ProposalStatus] = mapped_column(Enum(ProposalStatus), nullable=False, default=ProposalStatus.DRAFT)
     content_json = mapped_column(JSON)
     pdf_url = mapped_column(String)
-    created_at = mapped_column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = mapped_column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     conversation = relationship("ConversationEntity", back_populates="proposal")

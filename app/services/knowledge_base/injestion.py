@@ -1,6 +1,7 @@
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.infrastructure.supabase.storage import SupabaseStorage
 from app.models.entity.knowledge_base import DocumentChunk
 from app.models.enums.knowledge_base_type import KnowledgeBaseStatus, KnowledgeBaseType
 from app.infrastructure.repository.knowledge_base.knowledge_base_repository import KnowledgeBaseRepository
@@ -25,6 +26,7 @@ class IngestionService:
         self.db = db
         self.kb_repo = KnowledgeBaseRepository(db)
         self.chunk_repo = DocumentChunkRepository(db)
+        self.storage = SupabaseStorage()
         self.chunker = Chunker(chunk_size=512, chunk_overlap=100)
         self.embedder = Embedder()
 
@@ -85,7 +87,7 @@ class IngestionService:
         
         match source_type:
             case KnowledgeBaseType.PDF:
-                file_bytes = await get_file_bytes(kb.source_reference)
+                file_bytes = self.storage.download_file(kb.source_reference)
                 parser = PdfParser()
                 pages = parser.parse(file_bytes)
                 return self.chunker.chunk_documents([

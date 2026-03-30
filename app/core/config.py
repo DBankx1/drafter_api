@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str ="text-embedding-3-small"
     EMBEDDING_DIM: int = 1536
     
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = "redis://redis:6379/0"
     
     MAX_PDF_SIZE_MB: int = 20
         

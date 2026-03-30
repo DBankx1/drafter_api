@@ -19,7 +19,7 @@ class ConversationEntity(Base):
     customer_email = mapped_column(String)
     customer_name = mapped_column(String)
     status = mapped_column(String, default="active")
-    started_at = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    started_at = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     
     business = relationship("BusinessEntity", back_populates="conversations")
     messages = relationship("MessageEntity", back_populates="conversation")

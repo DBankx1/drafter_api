@@ -25,7 +25,7 @@ class KnowledgeBaseEntity(Base):
     source_reference = mapped_column(String)
     chunk_count = mapped_column(Integer, default=0)
     meta = mapped_column(JSON, default=dict)
-    uploaded_at = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    uploaded_at = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
     business = relationship("BusinessEntity", back_populates="knowledge_bases")
 

@@ -19,30 +19,6 @@ class KnowledgeBaseRepository(BaseRepository[KnowledgeBaseEntity]):
     def __init__(self, db: AsyncSession):
         super().__init__(KnowledgeBaseEntity, db)
     
-    async def create(
-        self,
-        business_id: str,
-        source_type: KnowledgeBaseType,
-        source_reference: str,
-        metadata: dict = {}
-    ) -> KnowledgeBaseEntity:
-        try:
-            kb = KnowledgeBaseEntity(
-                business_id=business_id,
-                source_type=source_type,
-                source_reference=source_reference,
-                status=KnowledgeBaseStatus.PENDING,
-                meta=metadata
-            )
-            self.db.add(kb)
-            await self.db.commit()
-            await self.db.refresh(kb)
-            return kb
-        except SQLAlchemyError as e:
-            await self.db.rollback()
-            logger.error(f"Database error creating knowledge base for business {business_id}: {str(e)}")
-            raise
-    
     async def get_by_id(self, kb_id: str) -> KnowledgeBaseEntity | None:
         result = await self.db.execute(
             select(KnowledgeBaseEntity).where(KnowledgeBaseEntity.id == kb_id)

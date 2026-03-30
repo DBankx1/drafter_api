@@ -1,5 +1,7 @@
 
 
+import datetime
+
 from pydantic import BaseModel
 
 from app.models.enums.knowledge_base_type import KnowledgeBaseStatus, KnowledgeBaseType
@@ -14,5 +16,5 @@ class KnowlegeBase(BaseModel):
     
 
 class KnowledgeBaseResponse(KnowlegeBase):
-    uploaded_at: str
+    uploaded_at: datetime.datetime
     meta: dict

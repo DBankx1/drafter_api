@@ -19,6 +19,6 @@ class MessageEntity(Base):
     conversation_id = mapped_column(String, ForeignKey("conversations.id"))
     role = mapped_column(Enum(ChatRoles), nullable=False, default=ChatRoles.USER)
     content = mapped_column(Text)
-    timestamp = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    timestamp = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     
     conversation = relationship("ConversationEntity", back_populates="messages")

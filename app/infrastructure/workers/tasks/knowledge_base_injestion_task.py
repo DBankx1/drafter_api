@@ -1,7 +1,7 @@
 from celery import Task
 
 from app.core.celery_app import celery_app
-from app.infrastructure.database.db import get_db
+from app.infrastructure.database.db import get_db_context
 from app.services.knowledge_base.injestion import IngestionService
 import asyncio
 
@@ -18,7 +18,7 @@ class IngestionTask(Task):
 )
 def ingest_knowledge_base(self, kb_id: str, business_id: str):
     async def _run():
-        async with get_db() as db: # type: ignore
+        async with get_db_context() as db:
             service = IngestionService(db)
             await service.ingest(kb_id, business_id)
     

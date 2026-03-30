@@ -19,8 +19,8 @@ class BusinessEntity(Base):
     name = mapped_column(String, nullable=False)
     email = mapped_column(String, unique=True, nullable=False)
     subdomain = mapped_column(String, unique=True)
-    created_at = mapped_column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = mapped_column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     pricing_config = relationship("PricingConfigEntity", back_populates="business", uselist=False, cascade="all, delete-orphan")
     conversations = relationship("ConversationEntity", back_populates="business", cascade="all, delete-orphan")
