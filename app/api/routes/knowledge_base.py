@@ -24,6 +24,16 @@ async def upload_knowledge_base(
     service = KnowledgeBaseService(db)
     return await service.upload_pdf_knowledge_base(business.id, file)
 
+@router.post('/upload/txt')
+async def upload_txt_knowledge_base(
+    content: str,
+    db: AsyncSession = Depends(get_db),
+    business: BusinessEntity = Depends(get_user_business)
+) -> KnowledgeBaseResponse:
+    """Endpoint to upload a text-based knowledge base."""
+    
+    service = KnowledgeBaseService(db)
+    return await service.upload_text_knowledge_base(business.id, content)
 
 @router.get("/")
 async def get_knowledge_bases(
