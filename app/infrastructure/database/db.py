@@ -35,7 +35,6 @@ def _get_engine():
         max_overflow=20,
     )
 
-    
 engine = _get_engine()
 
 SessionLocal = async_sessionmaker(

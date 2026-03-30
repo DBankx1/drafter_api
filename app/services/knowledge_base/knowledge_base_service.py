@@ -96,6 +96,32 @@ class KnowledgeBaseService:
             uploaded_at=kb.uploaded_at
         )
     
+    async def upload_url_knowledge_base(self, business_id: str, url: str) -> KnowledgeBaseResponse:
+        """Handles the flow of uploading a knowledge base from a URL"""
+        
+        kb = await self.kb_repo.create(business_id=business_id, source_type=KnowledgeBaseType.URL, source_reference=url, meta={
+            "name": "Pricing page"
+        })
+        
+        logger.info(f"URL KB created: kb_id={kb.id} business_id={business_id} url={url}")
+        
+        task = ingest_knowledge_base.delay(
+            kb_id=kb.id,
+            business_id=business_id,
+        )
+        
+        logger.info(f"Ingestion task queued: task_id={task.id} kb_id={kb.id}")
+        
+        return KnowledgeBaseResponse(
+            id=kb.id,
+            business_id=kb.business_id,
+            source_type=kb.source_type,
+            source_reference=kb.source_reference,
+            status=kb.status,
+            meta=kb.meta,
+            uploaded_at=kb.uploaded_at
+        )
+    
     async def get_knowledge_bases(self, business_id: str) -> list[KnowledgeBaseResponse]:
         """Retrieves all knowledge bases for a given business."""
         kbs = await self.kb_repo.get_all_by_business(business_id)

@@ -14,12 +14,12 @@ from app.services.knowledge_base.knowledge_base_service import KnowledgeBaseServ
 router = APIRouter(tags=["knowledge_base"], prefix="/knowledge-base")
 
 @router.post("/upload/pdf")
-async def upload_knowledge_base(
+async def upload_pdf_knowledge_base(
     file: UploadFile,
     db: AsyncSession = Depends(get_db),
     business: BusinessEntity = Depends(get_user_business)
 ) -> KnowledgeBaseResponse:
-    """Endpoint to upload a knowledge base file."""
+    """Endpoint to upload PDF knowledge base file."""
     
     service = KnowledgeBaseService(db)
     return await service.upload_pdf_knowledge_base(business.id, file)
@@ -34,6 +34,17 @@ async def upload_txt_knowledge_base(
     
     service = KnowledgeBaseService(db)
     return await service.upload_text_knowledge_base(business.id, content)
+
+@router.post('/upload/url')
+async def upload_url_knowledge_base(
+    url: str,
+    db: AsyncSession = Depends(get_db),
+    business: BusinessEntity = Depends(get_user_business)
+) -> KnowledgeBaseResponse:
+    """Endpoint to upload a knowledge base from a URL."""
+    
+    service = KnowledgeBaseService(db)
+    return await service.upload_url_knowledge_base(business.id, url)
 
 @router.get("/")
 async def get_knowledge_bases(
