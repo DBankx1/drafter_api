@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import jwt_validator
 from app.models.dto.auth import TokenPayload
 from app.infrastructure.database.db import get_db

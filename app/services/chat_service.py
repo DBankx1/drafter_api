@@ -2,13 +2,13 @@ import logging
 
 from fastapi import WebSocket
 from app.infrastructure.websockets.chat_socket_manager import ChatWebSocketManager
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 logger = logging.getLogger(__name__)
 
 class ChatService:
-    def __init__(self, websocket: WebSocket, business_id: str, conversation_id: str, db: Session) -> None:
+    def __init__(self, websocket: WebSocket, business_id: str, conversation_id: str, db: AsyncSession) -> None:
         self.business_id = business_id
         self.conversation_id = conversation_id
         self.websocket = websocket

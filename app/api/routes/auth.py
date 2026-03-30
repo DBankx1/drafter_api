@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.middlewares.auth import get_current_user
 from app.services.auth_service import AuthService
 from app.infrastructure.database.db import get_db
@@ -12,14 +12,14 @@ router = APIRouter()
 @router.post("/signup", response_model=SignUpResponse, status_code=status.HTTP_201_CREATED)
 async def signup(
     signup_data: SignUpRequest,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Register a new user with Supabase Auth.
     """
     try:
         auth_service = AuthService(db)
-        return auth_service.signup_user(signup_data)
+        return await auth_service.signup_user(signup_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -27,13 +27,13 @@ async def signup(
         )
 
 @router.post("/login", response_model=TokenResponse)
-async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
     """
     Authenticate user and return JWT token.
     """
     try:
         auth_service = AuthService(db)
-        return auth_service.login_user(login_data)
+        return await auth_service.login_user(login_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -41,13 +41,13 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
         )
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(refresh_data: RefreshTokenRequest, db: Session = Depends(get_db)):
+async def refresh_token(refresh_data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
     """
     Refresh access token using refresh token.
     """
     try:
         auth_service = AuthService(db)
-        return auth_service.refresh_token(refresh_data)
+        return await auth_service.refresh_token(refresh_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -55,13 +55,13 @@ async def refresh_token(refresh_data: RefreshTokenRequest, db: Session = Depends
         )
 
 @router.post("/logout")
-async def logout(current_user: TokenPayload = Depends(get_current_user), db: Session = Depends(get_db)):
+async def logout(current_user: TokenPayload = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """
     Logout current user (handled client-side by clearing tokens).
     """
     try:
         auth_service = AuthService(db)
-        return auth_service.logout_user(current_user) 
+        return await auth_service.logout_user(current_user)
     except Exception as e:
         logger.error(f"Logout error: {str(e)}")
         # Don't fail logout even if Supabase call fails

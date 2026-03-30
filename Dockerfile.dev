@@ -1,0 +1,29 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install curl for health checks and system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    libpq-dev \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN pip install --no-cache-dir uv
+
+# Copy requirements.txt
+COPY requirements.txt .
+
+# Install dependencies using uv
+RUN uv pip install -r requirements.txt --system
+
+# Copy application code
+COPY . .
+
+# Expose port
+EXPOSE 8000
+
+# Run FastAPI development server
+CMD ["uv", "run", "fastapi", "dev", "--host", "0.0.0.0", "--port", "8000"]

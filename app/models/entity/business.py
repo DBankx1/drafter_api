@@ -25,7 +25,7 @@ class BusinessEntity(Base):
     pricing_config = relationship("PricingConfigEntity", back_populates="business", uselist=False, cascade="all, delete-orphan")
     conversations = relationship("ConversationEntity", back_populates="business", cascade="all, delete-orphan")
     widget_settings = relationship("WidgetSettingsEntity", back_populates="business", uselist=False, cascade="all, delete-orphan")
-    knowledge_base = relationship("KnowledgeBaseEntity", back_populates="business", cascade="all, delete-orphan")
+    knowledge_bases = relationship("KnowledgeBaseEntity", back_populates="business", cascade="all, delete-orphan")
     
     __table_args__ = (
         Index('idx_business_id', 'id'),

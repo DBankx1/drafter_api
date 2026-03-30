@@ -1,7 +1,7 @@
 
 import logging
 from multiprocessing import Value
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.supabase_client import get_supabase_publishable_client
 from app.infrastructure.repository.business_repository import BusinessRepository
 from app.models.dto.auth import LoginRequest, RefreshTokenRequest, SignUpRequest, SignUpResponse, TokenPayload, TokenResponse, UserResponse
@@ -10,12 +10,12 @@ logger = logging.getLogger(__name__)
 
 class AuthService():
     
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: AsyncSession) -> None:
         self.supabase_client = get_supabase_publishable_client()
         self.db = db
         
     
-    def signup_user(self, signup_data: SignUpRequest) -> SignUpResponse:            
+    async def signup_user(self, signup_data: SignUpRequest) -> SignUpResponse:            
         try:
             # Sign up with Supabase
             response = self.supabase_client.auth.sign_up({
@@ -33,7 +33,7 @@ class AuthService():
             
             # Create business profile (optional - you might want this in a separate endpoint)
             business_repo = BusinessRepository(self.db)
-            business = business_repo.create(
+            business = await business_repo.create(
                 user_id=response.user.id,
                 email=signup_data.email,
                 name=signup_data.full_name or signup_data.email.split('@')[0],
@@ -55,7 +55,7 @@ class AuthService():
             raise e
         
     
-    def login_user(self, login_data: LoginRequest):
+    async def login_user(self, login_data: LoginRequest):
         """
         Authenticate user and return JWT token.
         """
@@ -84,7 +84,7 @@ class AuthService():
             raise e
         
     
-    def refresh_token(self, refresh_data: RefreshTokenRequest):
+    async def refresh_token(self, refresh_data: RefreshTokenRequest):
         try:
             response = self.supabase_client.auth.refresh_session(refresh_data.refresh_token)
         
@@ -108,7 +108,7 @@ class AuthService():
             logger.error(f"Refresh error: {str(e)}")
             raise e
         
-    def logout_user(self, current_user: TokenPayload):
+    async def logout_user(self, current_user: TokenPayload):
         try:
             self.supabase_client.auth.sign_out()
             logger.info(f"User logged out: {current_user.sub}")
