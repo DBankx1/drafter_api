@@ -7,6 +7,7 @@ class BusinessBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     email: EmailStr
     subdomain: Optional[str] = Field(None, min_length=3, max_length=63)
+    logo_url: Optional[str] = None
 
 class BusinessCreate(BusinessBase):
     @field_validator('subdomain')

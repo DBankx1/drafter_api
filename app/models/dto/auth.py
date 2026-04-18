@@ -23,6 +23,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
+    refresh_token: Optional[str] = None
     user: UserResponse
 
 class LoginRequest(BaseModel):
@@ -36,6 +37,8 @@ class SignUpRequest(BaseModel):
 
 class SignUpResponse(BaseModel):
     user: UserResponse
+    access_token: str
+    refresh_token: Optional[str] = None
     message: str
 
 class RefreshTokenRequest(BaseModel):

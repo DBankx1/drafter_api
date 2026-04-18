@@ -18,3 +18,7 @@ class KnowlegeBase(BaseModel):
 class KnowledgeBaseResponse(KnowlegeBase):
     uploaded_at: datetime.datetime
     meta: dict
+    
+class TextKnowledgeBaseCreate(BaseModel):
+    content: str
+    label: str

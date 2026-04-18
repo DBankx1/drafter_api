@@ -1,5 +1,6 @@
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.api.routes.auth import logout
 from app.infrastructure.repository.business_repository import BusinessRepository
 from app.models.dto.business import BusinessCreate, BusinessUpdate
 from app.models.entity.business import BusinessEntity
@@ -45,7 +46,8 @@ class BusinessService:
             user_id=user_id,
             name=business_data.name,
             email=business_data.email,
-            subdomain=business_data.subdomain
+            subdomain=business_data.subdomain,
+            logo_url=business_data.logo_url
         )
         
         logger.info(f"Created business: {business.id} for user: {user_id}")

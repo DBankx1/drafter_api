@@ -27,6 +27,14 @@ Drafter API provides a comprehensive REST API for:
 - **asyncpg** (>= 0.31.0) — High-performance async PostgreSQL driver
 - **Supabase** (>= 2.27.2) — Authentication, storage, and managed database
 - **Redis** (7-alpine) — Session store, Celery broker/backend
+- **Alembic** (>= 1.18.4) — Database schema migrations
+
+## Database migrations (Alembic)
+
+1. Ensure Alembic is installed in your venv: `uv add alembic`
+2. From repository root run `alembic revision --autogenerate -m "initial schema"`
+3. Apply migrations: `alembic upgrade head`
+4. For local convenience: set `DB_CREATE_ALL=true` to run `Base.metadata.create_all()` in `app/infrastructure/database/db.py`.
 
 ### LLM & AI
 

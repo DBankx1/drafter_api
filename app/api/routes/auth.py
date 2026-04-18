@@ -7,7 +7,7 @@ from app.models.dto.auth import LoginRequest, RefreshTokenRequest, SignUpRequest
 import logging
 
 logger = logging.getLogger(__name__)
-router = APIRouter()
+router = APIRouter(tags=["auth"], prefix="/auth")
 
 @router.post("/signup", response_model=SignUpResponse, status_code=status.HTTP_201_CREATED)
 async def signup(

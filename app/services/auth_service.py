@@ -31,7 +31,6 @@ class AuthService():
             if response.user is None:
                 raise ConnectionError(f"failed to create user with supa base for email: {signup_data.email}")
             
-            # Create business profile (optional - you might want this in a separate endpoint)
             business_repo = BusinessRepository(self.db)
             business = await business_repo.create(
                 user_id=response.user.id,
@@ -47,6 +46,8 @@ class AuthService():
             
             return SignUpResponse(
                 user=UserResponse(id=response.user.id, email=signup_data.email, created_at=response.user.created_at),
+                access_token=response.session.access_token if response.session else "",
+                refresh_token=response.session.refresh_token if response.session else None,
                 message="User created successfully"
             )
             
@@ -68,9 +69,11 @@ class AuthService():
             if response.user is None or response.session is None:
                 raise ValueError("Invalid email or password")
             
+            
             return TokenResponse(
                 access_token=response.session.access_token,
                 token_type="bearer",
+                refresh_token=response.session.refresh_token,
                 expires_in=response.session.expires_in,
                 user=UserResponse(
                     id=response.user.id,
@@ -96,6 +99,7 @@ class AuthService():
             
             return TokenResponse(
                 access_token=response.session.access_token,
+                refresh_token=response.session.refresh_token,
                 token_type="bearer",
                 expires_in=response.session.expires_in,
                 user=UserResponse(

@@ -47,7 +47,12 @@ SessionLocal = async_sessionmaker(
 async def init_db():
     async with engine.begin() as conn:
         await _on_connect(conn, None)  # Ensure pgvector is registered before creating tables
-        await conn.run_sync(Base.metadata.create_all)
+
+        # In production, rely on Alembic migrations.
+        # Developers can use DB_CREATE_ALL=true for local dev if needed.
+        if os.getenv("DB_CREATE_ALL", "false").lower() == "true":
+            await conn.run_sync(Base.metadata.create_all)
+
 
 async def get_db():
     async with SessionLocal() as session:
