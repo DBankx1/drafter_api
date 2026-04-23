@@ -1,13 +1,15 @@
 
 import asyncio
 import logging
+from os import name
 
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.validators.files.pdf_validator import PDFValidator
+from app.infrastructure.repository.knowledge_base.document_chunk_repository import DocumentChunkRepository
 from app.infrastructure.repository.knowledge_base.knowledge_base_repository import KnowledgeBaseRepository
 from app.infrastructure.supabase.storage import SupabaseStorage
-from app.models.dto.knowledge_base import KnowledgeBaseResponse
+from app.models.dto.knowledge_base import KnowledgeBaseResponse, TextKnowledgeBaseCreate, URLKnowledgeBaseCreate
 from app.models.enums.knowledge_base_type import KnowledgeBaseStatus, KnowledgeBaseType
 from app.infrastructure.workers.tasks.knowledge_base_injestion_task import ingest_knowledge_base
 
@@ -23,6 +25,7 @@ class KnowledgeBaseService:
         self.db = db
         self.kb_repo = KnowledgeBaseRepository(db)
         self.storage = SupabaseStorage()
+        self.chunk_repo = DocumentChunkRepository(db)
         
     
     async def upload_pdf_knowledge_base(self, business_id: str, file: UploadFile) -> KnowledgeBaseResponse:
@@ -36,7 +39,7 @@ class KnowledgeBaseService:
             f"business_id={business_id}"
         )
         
-        kb = await self.kb_repo.create(business_id=business_id, source_type=KnowledgeBaseType.PDF, source_reference="", meta={"original_filename": file.filename})
+        kb = await self.kb_repo.create(business_id=business_id, source_type=KnowledgeBaseType.PDF, source_reference="", meta={"original_filename": file.filename}, name=file.filename, kb_size=len(file_bytes))
         
         storage_path = self.storage.build_path(business_id, file.filename) # type: ignore
         
@@ -64,6 +67,8 @@ class KnowledgeBaseService:
         
         return KnowledgeBaseResponse(
             id=kb.id,
+            name=kb.name,
+            kb_size=kb.kb_size,
             business_id=kb.business_id,
             source_type=kb.source_type,
             source_reference=storage_path,
@@ -72,10 +77,10 @@ class KnowledgeBaseService:
             uploaded_at=kb.uploaded_at
         )
     
-    async def upload_text_knowledge_base(self, business_id: str, content: str) -> KnowledgeBaseResponse:
+    async def upload_text_knowledge_base(self, business_id: str, data: TextKnowledgeBaseCreate) -> KnowledgeBaseResponse:
         """Handles the flow of uploading a text-based knowledge base"""
         
-        kb = await self.kb_repo.create(business_id=business_id, source_type=KnowledgeBaseType.TEXT, source_reference=content, meta={})
+        kb = await self.kb_repo.create(business_id=business_id, source_type=KnowledgeBaseType.TEXT, source_reference=data.content, meta={}, name=data.label, kb_size=len(data.content))
         
         logger.info(f"Text KB created: kb_id={kb.id} business_id={business_id}")
         
@@ -88,6 +93,8 @@ class KnowledgeBaseService:
         
         return KnowledgeBaseResponse(
             id=kb.id,
+            name=kb.name,
+            kb_size=kb.kb_size,
             business_id=kb.business_id,
             source_type=kb.source_type,
             source_reference=kb.source_reference,
@@ -96,14 +103,12 @@ class KnowledgeBaseService:
             uploaded_at=kb.uploaded_at
         )
     
-    async def upload_url_knowledge_base(self, business_id: str, url: str) -> KnowledgeBaseResponse:
+    async def upload_url_knowledge_base(self, business_id: str, data: URLKnowledgeBaseCreate) -> KnowledgeBaseResponse:
         """Handles the flow of uploading a knowledge base from a URL"""
         
-        kb = await self.kb_repo.create(business_id=business_id, source_type=KnowledgeBaseType.URL, source_reference=url, meta={
-            "name": "Pricing page"
-        })
+        kb = await self.kb_repo.create(business_id=business_id, source_type=KnowledgeBaseType.URL, source_reference=data.url, meta={}, name=data.label, kb_size=0)
         
-        logger.info(f"URL KB created: kb_id={kb.id} business_id={business_id} url={url}")
+        logger.info(f"URL KB created: kb_id={kb.id} business_id={business_id} url={data.url}")
         
         task = ingest_knowledge_base.delay(
             kb_id=kb.id,
@@ -114,6 +119,8 @@ class KnowledgeBaseService:
         
         return KnowledgeBaseResponse(
             id=kb.id,
+            name=kb.name,
+            kb_size=kb.kb_size,
             business_id=kb.business_id,
             source_type=kb.source_type,
             source_reference=kb.source_reference,
@@ -128,6 +135,8 @@ class KnowledgeBaseService:
         return [
             KnowledgeBaseResponse(
                 id=kb.id,
+                name=kb.name,
+                kb_size=kb.kb_size,
                 business_id=kb.business_id,
                 source_type=kb.source_type,
                 source_reference=kb.source_reference,
@@ -137,6 +146,32 @@ class KnowledgeBaseService:
             )
             for kb in kbs
         ]
+    
+    async def view_knowledge_base_file(self, business_id: str, kb_id: str) -> str:
+        """Retrieves a knowledge base file Url for viewing/downloading."""
+        kb = await self.kb_repo.get_by_id(kb_id)
+        if not kb or kb.business_id != business_id:
+            raise ValueError("Knowledge base not found")
+        if kb.source_type == KnowledgeBaseType.PDF:
+            url = self.storage.get_signed_url(kb.source_reference)
+            return url
+        else:
+            raise ValueError("Viewing is only supported for PDF knowledge bases")
+        
+    async def delete_knowledge_base(self, business_id: str, kb_id: str) -> None:
+        """Deletes a knowledge base and its associated file if applicable."""
+        kb = await self.kb_repo.get_by_id(kb_id)
+        if not kb or kb.business_id != business_id:
+            raise ValueError("Knowledge base not found")
+        
+        await self.chunk_repo.delete_by_source(kb_id)
+        
+        await self.kb_repo.delete(kb_id, business_id)
+        logger.info(f"Knowledge base deleted from DB: kb_id={kb_id}")
+        
+        if kb.source_type == KnowledgeBaseType.PDF and kb.source_reference:
+            await self._cleanup_storage(kb.source_reference)
+            logger.info(f"Knowledge base file deleted from storage: path={kb.source_reference}")
     
     async def _cleanup_storage(self, path: str) -> None:
         """Best-effort storage cleanup on failure — never raises."""

@@ -9,6 +9,8 @@ from app.models.enums.knowledge_base_type import KnowledgeBaseStatus, KnowledgeB
 
 class KnowlegeBase(BaseModel):
     id: str
+    name: str
+    kb_size: int
     business_id: str
     source_type: KnowledgeBaseType
     source_reference: str
@@ -21,4 +23,8 @@ class KnowledgeBaseResponse(KnowlegeBase):
     
 class TextKnowledgeBaseCreate(BaseModel):
     content: str
+    label: str
+    
+class URLKnowledgeBaseCreate(BaseModel):
+    url: str
     label: str

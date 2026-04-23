@@ -17,7 +17,7 @@ class DocumentChunkRepository:
         query_embedding: list[float],
         business_id: str,
         top_k: int = 5,
-        source_ids: list[int] | None = None,  # optionally scope to specific sources
+        source_ids: list[str] | None = None,  # optionally scope to specific sources
     ) -> list[DocumentChunk]:
         """
         Core RAG retrieval. Always scoped to business_id — never leaks 
@@ -39,14 +39,14 @@ class DocumentChunkRepository:
         result = await self.db.execute(query)
         return result.scalars().all() # type: ignore
 
-    async def delete_by_source(self, source_id: int) -> None:
+    async def delete_by_source(self, source_id: str) -> None:
         """Called when a knowledge base source is deleted."""
         await self.db.execute(
             delete(DocumentChunk).where(DocumentChunk.source_id == source_id)
         )
         await self.db.commit()
 
-    async def count_by_source(self, source_id: int) -> int:
+    async def count_by_source(self, source_id: str) -> int:
         result = await self.db.execute(
             select(func.count())
             .where(DocumentChunk.source_id == source_id)

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import uuid
+from numpy import size
 from sqlalchemy import JSON, UUID, DateTime, ForeignKey, Index, Integer, String, Text
 from app.models.entity.base import Base
 from sqlalchemy.orm import Mapped, mapped_column
@@ -20,6 +21,8 @@ class KnowledgeBaseEntity(Base):
     
     id = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     business_id = mapped_column(String, ForeignKey("businesses.id"))
+    name = mapped_column(String, nullable=False)
+    kb_size = mapped_column(Integer, default=0)
     source_type: Mapped[KnowledgeBaseType] = mapped_column(Enum(KnowledgeBaseType), nullable=False, default=KnowledgeBaseType.TEXT)
     status: Mapped[KnowledgeBaseStatus] = mapped_column(Enum(KnowledgeBaseStatus), nullable=False, default=KnowledgeBaseStatus.PENDING)
     source_reference = mapped_column(String)

@@ -1,5 +1,5 @@
 
-from fastapi import Depends, UploadFile
+from fastapi import Depends, UploadFile, HTTPException, status
 from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,7 +7,7 @@ from app.core.middlewares.auth import get_current_user
 from app.core.middlewares.business_auth import get_user_business
 from app.infrastructure.database.db import get_db
 from app.models.dto.auth import TokenPayload
-from app.models.dto.knowledge_base import KnowledgeBaseResponse, TextKnowledgeBaseCreate
+from app.models.dto.knowledge_base import KnowledgeBaseResponse, TextKnowledgeBaseCreate, URLKnowledgeBaseCreate
 from app.models.entity.business import BusinessEntity
 from app.services.knowledge_base.knowledge_base_service import KnowledgeBaseService
 
@@ -31,20 +31,19 @@ async def upload_txt_knowledge_base(
     business: BusinessEntity = Depends(get_user_business)
 ) -> KnowledgeBaseResponse:
     """Endpoint to upload a text-based knowledge base."""
-    print(f"This is dataaaa: {data}")
     service = KnowledgeBaseService(db)
-    return await service.upload_text_knowledge_base(business.id, data.content)
+    return await service.upload_text_knowledge_base(business.id, data)
 
 @router.post('/upload/url')
 async def upload_url_knowledge_base(
-    url: str,
+    data: URLKnowledgeBaseCreate,
     db: AsyncSession = Depends(get_db),
     business: BusinessEntity = Depends(get_user_business)
 ) -> KnowledgeBaseResponse:
     """Endpoint to upload a knowledge base from a URL."""
     
     service = KnowledgeBaseService(db)
-    return await service.upload_url_knowledge_base(business.id, url)
+    return await service.upload_url_knowledge_base(business.id, data)
 
 @router.get("/")
 async def get_knowledge_bases(
@@ -55,3 +54,15 @@ async def get_knowledge_bases(
     
     service = KnowledgeBaseService(db)
     return await service.get_knowledge_bases(business.id)    
+
+@router.delete("/{knowledge_base_id}")
+async def delete_knowledge_base(
+    knowledge_base_id: str,
+    db: AsyncSession = Depends(get_db),
+    business: BusinessEntity = Depends(get_user_business)
+):
+    """Endpoint to delete a knowledge base by ID."""
+    
+    service = KnowledgeBaseService(db)
+    await service.delete_knowledge_base(business.id, knowledge_base_id)
+    return {"detail": "Knowledge base deleted successfully."}
