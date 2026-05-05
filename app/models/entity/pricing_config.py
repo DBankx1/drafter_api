@@ -37,6 +37,9 @@ class ServiceConfig(BaseModel):
     base_price: float
     options: list[ServiceOption] = []
 
+    class Config:
+        use_enum_values = True
+
 
 class PricingService(BaseModel):
     services: list[ServiceConfig]
