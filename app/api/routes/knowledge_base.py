@@ -1,12 +1,9 @@
 
-from fastapi import Depends, UploadFile, HTTPException, status
+from fastapi import Depends, UploadFile
 from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.middlewares.auth import get_current_user
 from app.core.middlewares.business_auth import get_user_business
 from app.infrastructure.database.db import get_db
-from app.models.dto.auth import TokenPayload
 from app.models.dto.knowledge_base import KnowledgeBaseResponse, TextKnowledgeBaseCreate, URLKnowledgeBaseCreate
 from app.models.entity.business import BusinessEntity
 from app.services.knowledge_base.knowledge_base_service import KnowledgeBaseService
