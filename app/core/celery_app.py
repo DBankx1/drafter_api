@@ -5,7 +5,10 @@ celery_app = Celery(
     "drafter_api",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.infrastructure.workers.tasks.knowledge_base_injestion_task"]
+    include=[
+        "app.infrastructure.workers.tasks.knowledge_base_injestion_task",
+        "app.infrastructure.workers.tasks.proposal_notification_task",
+    ]
 )
 
 celery_app.conf.update(

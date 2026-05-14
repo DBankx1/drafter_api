@@ -31,7 +31,9 @@ class Settings(BaseSettings):
     EMBEDDING_DIM: int = 1536
     
     REDIS_URL: str = "redis://redis:6379/0"
-    
+
+    LLM_MODEL: str = "gpt-4o-mini"
+
     MAX_PDF_SIZE_MB: int = 20
         
 settings = Settings() # type: ignore
