@@ -42,6 +42,9 @@ def notify_business_of_proposal(
             )
 
             # TODO: send email via your email provider (e.g. Resend, SendGrid, SES)
+            
+            # Send Email to client first to confirm propsal generation, then send to business owner. This ensures the client is informed even if the business notification fails.
+            
             # Example structure:
             # await send_email(
             #     to=business.email,

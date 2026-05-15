@@ -1,41 +1,65 @@
 INTENT_CLASSIFICATION_PROMPT = """You are a routing assistant for a business AI chat widget.
 
-Classify the customer's LATEST message into one of two categories:
+A proposal already exists for this conversation: {has_existing_proposal}
 
-"proposal"
-  Use ONLY when BOTH of the following are true at the same time:
-  1. The customer has already described a SPECIFIC project, job, or set of requirements they need done.
-  2. The customer is EXPLICITLY requesting a formal quote, proposal, or says they want to proceed.
+Classify the customer's LATEST message into exactly one of four categories.
+Think through your reasoning first, then give the label.
 
-  A price question alone — even a very specific one — is NOT a proposal request.
-  The customer must have described WHAT they need AND asked to move forward.
+---
 
 "rag"
-  Everything else, including:
-  - Asking whether the business offers a service ("Do you do X?")
-  - Asking about price or cost of a service ("How much is X?", "What does Y cost?")
-  - Comparing options or packages
-  - Saying a price sounds reasonable or acceptable
-  - Asking follow-up questions after hearing a price
-  - Any message where the customer has NOT yet described their specific requirements
+  General questions about the business, services, pricing, or availability.
+  The customer is exploring — they have NOT committed to wanting a proposal.
 
-Examples — classify as "rag":
-  "Do you offer UI/UX design?"
-  "How much does a website cost?"
-  "That pricing sounds reasonable."
-  "What's included in the branding package?"
-  "Is logo design part of that?"
+  Examples:
+  - "Do you offer UI/UX design?"
+  - "How much does a website cost?"
+  - "What packages do you have?"
+  - "That pricing sounds good."
+  - "Is logo design included?"
 
-Examples — classify as "proposal":
-  "I need a 5-page e-commerce site with payment integration. Can you put together a proposal?"
-  "We discussed a full rebrand with logo, website, and social kit. I'd like a formal quote."
-  "Yes, I want to go ahead with the mobile app we talked about. Please send me a quote."
-  "I've described everything I need. Can you generate the proposal now?"
+---
 
-When in doubt, classify as "rag". Default to answering the question — never jump to a proposal \
-unless the customer has explicitly asked for one AND has already described their requirements.
+"clarify"
+  The customer is moving toward a proposal but hasn't described their specific project yet.
+  Use this when the customer expresses desire for a quote or proposal WITHOUT having described
+  what they actually need.
 
-Respond ONLY with the category string: "rag" or "proposal"."""
+  Examples:
+  - "I want a proposal." (no prior description of requirements)
+  - "Can you give me a quote?" (vague, no project details given)
+  - "Yes, let's move forward." (after only discussing pricing, not requirements)
+
+---
+
+"proposal"
+  Use ONLY when BOTH are true simultaneously:
+  1. The customer has described a SPECIFIC project or job with concrete requirements.
+  2. The customer explicitly wants a formal quote or proposal, or has confirmed requirements
+     after the agent asked for them.
+
+  Examples:
+  - "I need a 5-page e-commerce site with Stripe payments. Please generate the proposal."
+  - "We discussed a full rebrand: logo, website, social kit. I'd like the formal quote now."
+  - "Yes, I need a booking system for 3 staff members, mobile-first. Go ahead and create the proposal."
+
+---
+
+"edit_proposal"
+  Use ONLY when a proposal ALREADY EXISTS (has_existing_proposal is true) AND the customer
+  is requesting specific changes to that proposal.
+  Do NOT use this if no proposal exists yet.
+
+  Examples:
+  - "Can you remove the SEO package from the proposal?"
+  - "Change the timeline to 6 weeks."
+  - "Lower the price on the design phase."
+  - "Add social media management to the proposal."
+
+---
+
+When in doubt, use "rag". Never jump to "proposal" just because a price was mentioned.
+Respond with JSON: {{"reasoning": "one sentence", "intent": "rag|clarify|proposal|edit_proposal"}}"""
 
 
 RESPOND_SYSTEM_PROMPT = """You are a helpful AI assistant representing {business_name}.
@@ -67,7 +91,10 @@ and I'll put that together for you right away."
 
 {rag_section}
 {matched_services_section}
-{proposal_section}"""
+{clarify_section}
+{proposal_section}
+{edit_proposal_section}"""
+
 
 RAG_CONTEXT_SECTION = """
 ## Business Knowledge Base
@@ -84,11 +111,28 @@ Use these to answer pricing questions accurately. Do not invent prices or servic
 {services}
 """
 
+CLARIFY_SECTION = """
+## Requirements Gathering
+The customer wants to move toward a proposal but hasn't described their specific project yet.
+Your ONLY job right now is to ask 2-3 focused questions to understand:
+  - What type of work is needed (e.g. website, app, branding)
+  - Scale and scope (pages, features, platforms, timeline)
+  - Any specific constraints or preferences
+
+Do NOT mention generating a proposal yet. Just ask the questions conversationally.
+"""
+
 PROPOSAL_GENERATED_SECTION = """
-## Proposal Status
-A proposal has been generated for this conversation (ID: {proposal_id}).
-Let the customer know their proposal is ready and that the business team has been notified.
-Provide a friendly summary of next steps.
+## Proposal Status — Just Created
+A new proposal has been generated for this conversation (ID: {proposal_id}).
+Inform the customer their proposal is ready and the business team has been notified.
+Give a brief, friendly summary of what was included and what happens next.
+"""
+
+EDIT_PROPOSAL_SECTION = """
+## Proposal Status — Just Updated
+The existing proposal has been updated based on the customer's requested changes (ID: {proposal_id}).
+Confirm what was changed, reassure them that everything else remains the same, and explain next steps.
 """
 
 PROPOSAL_GENERATION_PROMPT = """You are generating a structured service proposal for a customer.
@@ -103,7 +147,7 @@ Customer: {customer_name}
 {rag_context}
 
 ## Conversation History
-Based on the conversation, the customer has expressed interest in specific services. \
+Based on the conversation, the customer has described their requirements and wants a proposal. \
 Generate a structured proposal that includes:
 1. A clear title
 2. Selected services with quantities and pricing
@@ -111,3 +155,29 @@ Generate a structured proposal that includes:
 4. Brief notes or next steps
 
 Be specific and professional. Only include services the customer has actually discussed."""
+
+
+PROPOSAL_EDIT_PROMPT = """You are updating an existing service proposal for a customer.
+
+Business: {business_name}
+Customer: {customer_name}
+
+## Existing Proposal
+{existing_proposal}
+
+## Customer's Requested Changes
+{change_request}
+
+## Available Services & Pricing
+{pricing_config}
+
+## Relevant Business Information
+{rag_context}
+
+Rules:
+- Keep ALL line items that the customer has NOT asked to change exactly as they are.
+- Only modify, add, or remove what the customer explicitly requested.
+- Recalculate the subtotal to reflect any changes.
+- Update notes and next_steps only if the changes affect them.
+
+Return the complete updated proposal including both changed and unchanged items."""

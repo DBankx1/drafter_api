@@ -34,6 +34,7 @@ class ChatWebSocketManager:
         conversation_id: str,
         business_id: str,
         customer_name: str,
+        existing_proposal_id: str | None,
         data: dict,
         db: AsyncSession,
         graph: CompiledStateGraph,
@@ -49,6 +50,9 @@ class ChatWebSocketManager:
 
         The db session is passed via config["configurable"] and never checkpointed
         to Redis — AsyncSession is not JSON-serializable.
+
+        existing_proposal_id is loaded from DB by chat_service on every connect so that
+        proposal_id is always correct even after Redis TTL expiry or session reconnect.
         """
         try:
             payload = ChatMessageInput.model_validate(data)
@@ -67,7 +71,7 @@ class ChatWebSocketManager:
             "matched_services": [],
             "pricing_config": None,
             "proposal_generated": False,
-            "proposal_id": None,
+            "proposal_id": existing_proposal_id,  # DB is source of truth — not Redis alone
             "messages": [],
             "response_text": "",
         }

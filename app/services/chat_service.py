@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketDisconnect
@@ -11,7 +12,6 @@ from app.models.entity.conversation import ConversationEntity
 
 logger = logging.getLogger(__name__)
 
-# WebSocket close codes (4000–4999 are application-defined per RFC 6455)
 _WS_CLOSE_NOT_FOUND = 4004
 _WS_CLOSE_FORBIDDEN = 4003
 
@@ -29,11 +29,10 @@ class ChatService:
         self.conversation_id = conversation_id
         self.db = db
         self.manager = ChatWebSocketManager()
-        # WebSocket exposes .app via its ASGI scope — no need to inject Request
         self.graph = websocket.app.state.agent_graph
 
     async def handle_chat_message(self) -> None:
-        conversation = await self._validate_connection()
+        conversation, existing_proposal_id = await self._validate_connection()
         if not conversation:
             return
 
@@ -47,6 +46,7 @@ class ChatService:
                     conversation_id=self.conversation_id,
                     business_id=self.business_id,
                     customer_name=customer_name,
+                    existing_proposal_id=existing_proposal_id,
                     data=data,
                     db=self.db,
                     graph=self.graph,
@@ -58,31 +58,32 @@ class ChatService:
         finally:
             self.manager.disconnect(self.conversation_id)
 
-    async def _validate_connection(self) -> ConversationEntity | None:
+    async def _validate_connection(self) -> tuple[Optional[ConversationEntity], Optional[str]]:
         """
-        Validates the business and conversation before accepting the socket.
-        Rejects with an application close code on failure so the client can
-        distinguish 'not found' from a server crash.
+        Validates the connection and returns (conversation, existing_proposal_id).
+        Loads the proposal eagerly so we know whether one already exists.
+        The proposal_id is seeded into AgentState every turn from DB — not from Redis alone —
+        so state is correct even after Redis TTL expiry or a fresh reconnect.
         """
         business = await BusinessRepository(self.db).get_by_id(self.business_id)
         if not business:
             logger.warning(f"WebSocket rejected — business not found: {self.business_id}")
             await self.websocket.close(code=_WS_CLOSE_NOT_FOUND, reason="Business not found")
-            return None
+            return None, None
 
-        conversation = await ConversationRepository(self.db).get_by_id(self.conversation_id)
+        conversation = await ConversationRepository(self.db).get_by_id_with_proposal(self.conversation_id)
         if not conversation:
             logger.warning(f"WebSocket rejected — conversation not found: {self.conversation_id}")
             await self.websocket.close(code=_WS_CLOSE_NOT_FOUND, reason="Conversation not found")
-            return None
+            return None, None
 
-        # Tenant isolation: conversation must belong to the business in the URL
         if conversation.business_id != self.business_id:
             logger.warning(
                 f"WebSocket rejected — conversation {self.conversation_id} "
                 f"does not belong to business {self.business_id}"
             )
             await self.websocket.close(code=_WS_CLOSE_FORBIDDEN, reason="Forbidden")
-            return None
+            return None, None
 
-        return conversation
+        existing_proposal_id: Optional[str] = conversation.proposal.id if conversation.proposal else None
+        return conversation, existing_proposal_id

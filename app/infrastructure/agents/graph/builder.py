@@ -11,7 +11,11 @@ from app.infrastructure.agents.nodes.respond_node import respond_node
 
 
 def _route_after_rag(state: AgentState) -> str:
-    return "proposal_node" if state["intent"] == "proposal" else "respond_node"
+    # Both "proposal" (CREATE) and "edit_proposal" (UPDATE) go through proposal_node.
+    # "rag" and "clarify" both go to respond_node — clarify gets extra prompt context injected there.
+    if state["intent"] in ("proposal", "edit_proposal"):
+        return "proposal_node"
+    return "respond_node"
 
 
 def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:

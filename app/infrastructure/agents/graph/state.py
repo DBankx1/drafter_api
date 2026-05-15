@@ -14,7 +14,11 @@ class AgentState(TypedDict):
     user_message: str
 
     # Routing — set by classify_intent
-    intent: Literal["rag", "proposal", "unknown"]
+    # "rag"          — general Q&A, price questions
+    # "clarify"      — user wants a proposal but hasn't described their project yet
+    # "proposal"     — has described requirements + wants a NEW proposal (CREATE)
+    # "edit_proposal"— proposal already exists + user wants changes (UPDATE)
+    intent: Literal["rag", "clarify", "proposal", "edit_proposal", "unknown"]
 
     # RAG context — always populated by rag_node before branching
     retrieved_chunks: list[str]
