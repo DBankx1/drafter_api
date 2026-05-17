@@ -31,7 +31,24 @@ class Settings(BaseSettings):
     EMBEDDING_DIM: int = 1536
     
     REDIS_URL: str = "redis://redis:6379/0"
-    
+
+    # --- LLM model tiers ---
+    CHAT_MODEL: str = "gpt-4o-mini"
+    CHAT_FALLBACK_MODEL: str = "gpt-4o-mini"
+
+
+    PROPOSAL_MODEL: str = "gpt-4o"
+    PROPOSAL_FALLBACK_MODEL: str = "gpt-4o-mini" 
+
+    # --- LLM reliability ---
+    LLM_MAX_RETRIES: int = 2
+    LLM_REQUEST_TIMEOUT: float = 30.0
+
+    # --- Cache ---
+    # Service embeddings are stable per business (only change when pricing is edited).
+    # 24h TTL is a safety net; explicit invalidation on pricing mutations is the primary mechanism.
+    SERVICE_EMBEDDING_CACHE_TTL: int = 86400
+
     MAX_PDF_SIZE_MB: int = 20
         
 settings = Settings() # type: ignore

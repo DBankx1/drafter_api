@@ -3,6 +3,7 @@ import json
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.infrastructure.cache.service_embedding_cache import invalidate_service_embeddings
 from app.infrastructure.repository.business_repository import BusinessRepository
 from app.infrastructure.repository.pricing_config_repository import PricingConfigRepository
 from app.models.dto.pricing import PricingConfigCreate, PricingServiceCreate
@@ -32,7 +33,7 @@ class PricingConfigService():
         )
         
         logger.info(f"Created pricing config {pricing_config.id} for business with {business_id}")
-        
+        await invalidate_service_embeddings(business_id)
         return pricing_config
     
     async def add_service_config(self, business_id: str, pricing_service_data: PricingServiceCreate) -> ServiceConfig:
@@ -57,9 +58,9 @@ class PricingConfigService():
         }
 
         await self.pricing_config_repo.update(pricing_config.id, config_json=updated_config_json)
-        
+        await invalidate_service_embeddings(business_id)
         return service_config
-    
+
     async def update_service_config(self, business_id: str, service_config_data_id: str, service_config_data: PricingServiceCreate) -> ServiceConfig:
         pricing_config = await self.pricing_config_repo.get_by_business_id(business_id)
         
@@ -92,9 +93,9 @@ class PricingConfigService():
         }
 
         await self.pricing_config_repo.update(pricing_config.id, config_json=updated_config_json)
-        
+        await invalidate_service_embeddings(business_id)
         return service_config
-    
+
     async def delete_service_config(self, business_id: str, service_config_data_id: str):
         pricing_config = await self.pricing_config_repo.get_by_business_id(business_id)
         
@@ -112,5 +113,6 @@ class PricingConfigService():
             **pricing_config.config_json,
             'services': services,
         }
-        
+
         await self.pricing_config_repo.update(pricing_config.id, config_json=updated_config_json)
+        await invalidate_service_embeddings(business_id)

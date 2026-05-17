@@ -21,19 +21,23 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack-server:latest
     container_name: redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redisdata:/data
+    environment:
+      # REDIS_ARGS is the correct way to pass config to redis-stack-server.
+      # The image's entrypoint loads RediSearch/RedisJSON first, then appends these args.
+      # Using `command: redis-server ...` would bypass module loading and break RediSearch.
+      REDIS_ARGS: "--appendonly yes --save 60 1"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    command: redis-server --appendonly yes
 
   pgadmin:
     image: dpage/pgadmin4

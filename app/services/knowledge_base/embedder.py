@@ -45,6 +45,21 @@ class Embedder:
         # Flatten batches back into a single ordered list
         return [chunk for batch in embedded_batches for chunk in batch]
 
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """
+        Embed a batch of raw strings and return their vectors.
+        Used for on-the-fly semantic matching (e.g. pricing services) where
+        we don't need the full TextChunk/EmbeddedChunk wrapper.
+        """
+        if not texts:
+            return []
+        response = await self._client.embeddings.create(
+            input=[t.strip() for t in texts],
+            model=self._model,
+            dimensions=self._dimensions,
+        )
+        return [item.embedding for item in response.data]
+
     async def embed_query(self, query: str) -> list[float]:
         """
         Embed a single search query at retrieval time.

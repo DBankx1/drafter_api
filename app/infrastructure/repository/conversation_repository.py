@@ -38,3 +38,21 @@ class ConversationRepository(BaseRepository[ConversationEntity]):
         except SQLAlchemyError as e:
             logger.error(f"Error retrieving conversation with ID {conversation_id}: {str(e)}")
             raise
+
+    async def get_by_id_with_proposal(self, conversation_id: str) -> Optional[ConversationEntity]:
+        """
+        Loads the conversation and its proposal in a single query.
+        Used at WebSocket connect time to determine whether a proposal already exists,
+        so proposal_id can be seeded into AgentState from the DB (not from Redis alone).
+        """
+        try:
+            stmt = (
+                select(ConversationEntity)
+                .where(ConversationEntity.id == conversation_id)
+                .options(joinedload(ConversationEntity.proposal))
+            )
+            result = await self.db.execute(stmt)
+            return result.scalars().first()
+        except SQLAlchemyError as e:
+            logger.error(f"Error retrieving conversation with proposal for {conversation_id}: {str(e)}")
+            raise
