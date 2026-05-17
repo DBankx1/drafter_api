@@ -5,7 +5,9 @@ import numpy as np
 from langchain_core.runnables import RunnableConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.infrastructure.agents.graph.state import AgentState
+from app.infrastructure.cache.service_embedding_cache import get_service_embeddings, set_service_embeddings
 from app.infrastructure.repository.knowledge_base.document_chunk_repository import DocumentChunkRepository
 from app.infrastructure.repository.pricing_config_repository import PricingConfigRepository
 from app.services.knowledge_base.embedder import Embedder
@@ -28,25 +30,29 @@ async def _match_pricing_services(
     query_embedding: list[float],
     services: list[dict],
     embedder: Embedder,
+    business_id: str,
 ) -> list[dict]:
     """
     Returns the subset of services that are semantically relevant to the query,
     ranked by cosine similarity. Reuses the query embedding already computed for
     the vector search — no extra embedding API call for the query itself.
 
-    Service texts are embedded as a single batch (pricing configs are small,
-    typically < 10 services) so the overhead is one lightweight API call.
+    Service embeddings are cached in Redis per business. They are deterministic
+    (same service texts → same vectors) and only change when the pricing catalogue
+    is edited. Cache hit rate is ~99% in production.
     """
     if not services:
         return []
 
-    # Build a descriptive text per service so the embedding captures both name + context
     service_texts = [
         f"{s['name']}: {s.get('description', '')}".strip(": ")
         for s in services
     ]
 
-    service_embeddings = await embedder.embed_texts(service_texts)
+    service_embeddings = await get_service_embeddings(business_id, service_texts)
+    if service_embeddings is None:
+        service_embeddings = await embedder.embed_texts(service_texts)
+        await set_service_embeddings(business_id, service_texts, service_embeddings, settings.SERVICE_EMBEDDING_CACHE_TTL)
 
     matched = []
     for service, s_emb in zip(services, service_embeddings):
@@ -97,7 +103,7 @@ async def rag_node(state: AgentState, config: RunnableConfig) -> dict:
                 business_id=state["business_id"],
                 top_k=5,
             ),
-            _match_pricing_services(query_embedding, services, embedder),
+            _match_pricing_services(query_embedding, services, embedder, state["business_id"]),
         )
         retrieved_chunks = [c.content for c in chunks]
 

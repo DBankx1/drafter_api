@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     LLM_MAX_RETRIES: int = 2
     LLM_REQUEST_TIMEOUT: float = 30.0
 
+    # --- Cache ---
+    # Service embeddings are stable per business (only change when pricing is edited).
+    # 24h TTL is a safety net; explicit invalidation on pricing mutations is the primary mechanism.
+    SERVICE_EMBEDDING_CACHE_TTL: int = 86400
+
     MAX_PDF_SIZE_MB: int = 20
         
 settings = Settings() # type: ignore
