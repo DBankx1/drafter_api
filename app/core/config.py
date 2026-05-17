@@ -32,7 +32,17 @@ class Settings(BaseSettings):
     
     REDIS_URL: str = "redis://redis:6379/0"
 
-    LLM_MODEL: str = "gpt-4o-mini"
+    # --- LLM model tiers ---
+    CHAT_MODEL: str = "gpt-4o-mini"
+    CHAT_FALLBACK_MODEL: str = "gpt-4o-mini"
+
+
+    PROPOSAL_MODEL: str = "gpt-4o"
+    PROPOSAL_FALLBACK_MODEL: str = "gpt-4o-mini" 
+
+    # --- LLM reliability ---
+    LLM_MAX_RETRIES: int = 2
+    LLM_REQUEST_TIMEOUT: float = 30.0
 
     MAX_PDF_SIZE_MB: int = 20
         

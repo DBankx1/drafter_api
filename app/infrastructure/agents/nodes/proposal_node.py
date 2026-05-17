@@ -5,12 +5,11 @@ from typing import Optional
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.infrastructure.agents.graph.state import AgentState
+from app.infrastructure.agents.llm import get_proposal_llm
 from app.infrastructure.prompts.proposal_prompts import (
     PROPOSAL_EDIT_PROMPT,
     PROPOSAL_GENERATION_PROMPT,
@@ -43,16 +42,14 @@ async def proposal_node(state: AgentState, config: RunnableConfig) -> dict:
     Handles both proposal CREATE and UPDATE in one node.
 
     CREATE path (intent == "proposal", proposal_id is None):
-      Generates a new ProposalOutput from requirements, persists a new ProposalEntity,
-      and fires a Celery notification to the business.
+      Generates a ProposalOutput, persists a new ProposalEntity, fires Celery notification.
 
     UPDATE path (intent == "edit_proposal", proposal_id is set):
-      Loads the existing proposal's content_json, generates an updated ProposalOutput
-      that incorporates only the requested changes, and replaces content_json in-place.
-      The proposal UUID and all other DB fields are preserved.
+      Loads existing content_json, generates an updated ProposalOutput that incorporates
+      only the requested changes, replaces content_json in-place (same UUID preserved).
 
-    In both paths, fetches business for context and caches it in config["configurable"]
-    so respond_node can reuse it without a second DB query.
+    Fetches and caches the business in config["configurable"] so respond_node can reuse
+    it without a second DB round-trip.
     """
     db: AsyncSession = config["configurable"]["db"]
 
@@ -66,74 +63,71 @@ async def proposal_node(state: AgentState, config: RunnableConfig) -> dict:
         logger.exception(f"[conversation={state['conversation_id']}] Failed to load business")
 
     pricing_data = state.get("pricing_config") or {"services": []}
-    rag_context = "\n\n".join(state["retrieved_chunks"]) if state["retrieved_chunks"] else "No additional context available."
-
-    llm = ChatOpenAI(
-        model=settings.LLM_MODEL,
-        temperature=0.2,
-        api_key=settings.OPENAI_API_KEY,
-    ).with_structured_output(ProposalOutput)
-
+    rag_context = (
+        "\n\n".join(state["retrieved_chunks"])
+        if state["retrieved_chunks"]
+        else "No additional context available."
+    )
+    llm = get_proposal_llm(output_schema=ProposalOutput)
     proposal_repo = ProposalRepository(db)
     is_edit = state["intent"] == "edit_proposal" and state.get("proposal_id") is not None
-    proposal_output: Optional[ProposalOutput] = None
 
     if is_edit:
-        proposal_output = await _generate_edit(
-            state=state,
-            llm=llm,
-            business_name=business_name,
-            pricing_data=pricing_data,
-            rag_context=rag_context,
-            proposal_repo=proposal_repo,
-        )
+        proposal_output = await _generate_edit(state, llm, business_name, pricing_data, rag_context, proposal_repo)
     else:
-        proposal_output = await _generate_new(
-            state=state,
-            llm=llm,
-            business_name=business_name,
-            pricing_data=pricing_data,
-            rag_context=rag_context,
-        )
+        proposal_output = await _generate_new(state, llm, business_name, pricing_data, rag_context)
 
     if not proposal_output:
         return {"proposal_generated": False, "proposal_id": state.get("proposal_id")}
 
-    # Persist
+    return await _persist(state, proposal_output, proposal_repo, is_edit)
+
+
+async def _persist(
+    state: AgentState,
+    proposal_output: ProposalOutput,
+    proposal_repo: ProposalRepository,
+    is_edit: bool,
+) -> dict:
+    """Persists a generated or updated proposal and returns the state update dict."""
+    conv_id = state["conversation_id"]
+
     if is_edit:
         proposal_id = state["proposal_id"]
         try:
             await proposal_repo.update_content(proposal_id, proposal_output.model_dump())
-            logger.info(f"[conversation={state['conversation_id']}] proposal updated: {proposal_id}")
+            logger.info(f"[conversation={conv_id}] proposal updated: {proposal_id}")
+            return {"proposal_generated": True, "proposal_id": proposal_id}
         except Exception:
-            logger.exception(f"[conversation={state['conversation_id']}] Failed to update proposal")
+            logger.exception(f"[conversation={conv_id}] Failed to update proposal")
             return {"proposal_generated": False, "proposal_id": proposal_id}
-    else:
-        proposal_id = str(uuid.uuid4())
-        try:
-            await proposal_repo.create(
-                id=proposal_id,
-                conversation_id=state["conversation_id"],
-                content_json=proposal_output.model_dump(),
-                status=ProposalStatus.DRAFT,
-            )
-            logger.info(f"[conversation={state['conversation_id']}] proposal created: {proposal_id}")
 
-            try:
-                from app.infrastructure.workers.tasks.proposal_notification_task import notify_business_of_proposal
-                notify_business_of_proposal.delay(
-                    business_id=state["business_id"],
-                    proposal_id=proposal_id,
-                    conversation_id=state["conversation_id"],
-                )
-            except Exception:
-                logger.exception("Failed to enqueue proposal notification — proposal was still saved")
+    proposal_id = str(uuid.uuid4())
+    try:
+        await proposal_repo.create(
+            id=proposal_id,
+            conversation_id=conv_id,
+            content_json=proposal_output.model_dump(),
+            status=ProposalStatus.DRAFT,
+        )
+        logger.info(f"[conversation={conv_id}] proposal created: {proposal_id}")
+        _enqueue_notification(state, proposal_id)
+        return {"proposal_generated": True, "proposal_id": proposal_id}
+    except Exception:
+        logger.exception(f"[conversation={conv_id}] Failed to persist proposal")
+        return {"proposal_generated": False, "proposal_id": None}
 
-        except Exception:
-            logger.exception(f"[conversation={state['conversation_id']}] Failed to persist proposal")
-            return {"proposal_generated": False, "proposal_id": None}
 
-    return {"proposal_generated": True, "proposal_id": proposal_id}
+def _enqueue_notification(state: AgentState, proposal_id: str) -> None:
+    try:
+        from app.infrastructure.workers.tasks.proposal_notification_task import notify_business_of_proposal
+        notify_business_of_proposal.delay(
+            business_id=state["business_id"],
+            proposal_id=proposal_id,
+            conversation_id=state["conversation_id"],
+        )
+    except Exception:
+        logger.exception("Failed to enqueue proposal notification — proposal was still saved")
 
 
 async def _generate_new(

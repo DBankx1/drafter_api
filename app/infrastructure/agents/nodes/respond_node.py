@@ -3,11 +3,10 @@ import logging
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_openai import ChatOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.infrastructure.agents.graph.state import AgentState
+from app.infrastructure.agents.llm import get_chat_llm
 from app.infrastructure.prompts.proposal_prompts import (
     CLARIFY_SECTION,
     EDIT_PROPOSAL_SECTION,
@@ -98,12 +97,7 @@ async def respond_node(state: AgentState, config: RunnableConfig) -> dict:
         proposal_id=state.get("proposal_id"),
     )
 
-    llm = ChatOpenAI(
-        model=settings.LLM_MODEL,
-        temperature=0.7,
-        streaming=True,
-        api_key=settings.OPENAI_API_KEY,
-    )
+    llm = get_chat_llm(temperature=0.7, streaming=True)
 
     messages = [
         SystemMessage(content=system_prompt),
