@@ -1,15 +1,18 @@
 """
 Service embedding cache backed by Redis.
 
-Service texts (pricing catalogue) are deterministic per business — the same set of services always produces the same embedding vectors. Caching them avoids a redundant OpenAI API call on every user message.
+Service texts (pricing catalogue) are deterministic per business — the same set of
+services always produces the same embedding vectors. Caching them avoids a redundant
+OpenAI API call on every user message.
 
 Design decisions:
-- Connection pool at module level (not per-call) — shared across all coroutines, avoids connection churn under concurrent WebSocket traffic.
+- Shared Redis connection pool from redis_pool module — one pool for the whole app.
 - All operations are fire-and-forget on failure — a Redis outage degrades to
   re-computing embeddings; it never breaks the chat flow.
 - SCAN instead of KEYS for pattern deletion — KEYS blocks the Redis event loop on
   large keyspaces; SCAN is cursor-based and production-safe.
-- JSON serialisation — debuggable in redis-cli; compression not needed at this scale (~100KB per business per cache entry).
+- JSON serialisation — debuggable in redis-cli; compression not needed at this scale
+  (~100KB per business per cache entry).
 """
 
 import hashlib
@@ -17,30 +20,14 @@ import json
 import logging
 from typing import Optional
 
-import redis.asyncio as aioredis
-
 from app.core.config import settings
+from app.infrastructure.cache.redis_pool import get_redis_client
 
 logger = logging.getLogger(__name__)
 
 
-_pool: Optional[aioredis.ConnectionPool] = None
-
-
-def _get_pool() -> aioredis.ConnectionPool:
-    global _pool
-    if _pool is None:
-        _pool = aioredis.ConnectionPool.from_url(
-            settings.REDIS_URL,
-            max_connections=10,
-            decode_responses=True,
-        )
-    return _pool
-
-
-def _client() -> aioredis.Redis:
-    """Returns a client that draws from the shared pool (no new connection per call)."""
-    return aioredis.Redis(connection_pool=_get_pool())
+def _client():
+    return get_redis_client()
 
 
 def _cache_key(business_id: str, service_texts: list[str]) -> str:

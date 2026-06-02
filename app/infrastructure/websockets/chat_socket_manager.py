@@ -7,6 +7,7 @@ from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rate_limiting import ws_semaphore
 from app.infrastructure.agents.graph.state import AgentState
 from app.models.dto.chat import ChatMessageInput
 
@@ -83,6 +84,13 @@ class ChatWebSocketManager:
             }
         }
 
+        if not await ws_semaphore.acquire(conversation_id):
+            await self.send_json(
+                conversation_id,
+                {"type": "busy", "content": "Please wait for the current reply to finish."},
+            )
+            return
+
         try:
             async for event in graph.astream_events(initial_state, config=config, version="v2"):
                 await self._handle_graph_event(conversation_id, event)
@@ -92,6 +100,8 @@ class ChatWebSocketManager:
                 conversation_id,
                 {"type": "error", "content": "Something went wrong. Please try again."},
             )
+        finally:
+            await ws_semaphore.release(conversation_id)
 
     async def _handle_graph_event(self, conversation_id: str, event: dict) -> None:
         event_name: str = event.get("event", "")
